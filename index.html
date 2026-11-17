@@ -84,6 +84,16 @@ h2 span{color:var(--muted);font-weight:500}
 .sheet .p{background:#fff;width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
 .sheet .p h3{margin:0 0 4px}
 .sheet .p .btn{width:100%;margin-top:10px}
+.me{margin-left:8px;width:36px;height:36px;border-radius:50%;border:none;background:var(--blue);color:#fff;font:inherit;font-weight:700;font-size:14px;cursor:pointer;flex:none}
+.me.shared{background:#fff;color:var(--muted);border:1.5px solid var(--line)}
+input[readonly]{background:#f6f7f9;color:var(--muted)}
+.welcome{position:fixed;inset:0;background:#fff;z-index:20;display:none;overflow:auto}
+.welcome.show{display:block}
+.welcome .w{max-width:440px;margin:0 auto;padding:calc(40px + env(safe-area-inset-top)) 22px 30px;display:grid;gap:14px}
+.welcome .brandBig{width:190px;height:auto;margin:0 auto 6px;display:block}
+.welcome h1{font-size:22px;margin:6px 0 0;text-align:center}
+.welcome p{margin:0;color:var(--muted);text-align:center}
+.link{background:none;border:none;color:var(--blue);font:inherit;font-weight:600;padding:10px;cursor:pointer}
 footer{color:var(--muted);font-size:12px;text-align:center;margin-top:6px}
 </style>
 </head>
@@ -93,6 +103,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;margin-top:6px}
 
   <div class="app">Calculs</div>
   <div class="net" id="net"><i></i><span>En ligne</span></div>
+  <button class="me" id="meBtn" type="button" aria-label="Mon compte">?</button>
 </header>
 
 <main>
@@ -137,6 +148,31 @@ footer{color:var(--muted);font-size:12px;text-align:center;margin-top:6px}
   <button class="btn pri" id="shShare" type="button">Partager (mail, Teams…)</button>
   <button class="btn" id="shDl" type="button">Télécharger</button>
   <button class="btn" id="shClose" type="button">Fermer</button>
+</div></div>
+<div class="sheet" id="acct"><div class="p">
+  <h3 id="acTitle">Mon compte</h3>
+  <div class="hint" id="acSub"></div>
+  <div id="acForm" style="display:grid;gap:10px;margin-top:12px">
+    <div class="grid">
+      <div><label for="aPre">Prénom</label><input type="text" id="aPre" autocomplete="given-name"></div>
+      <div><label for="aNom">Nom</label><input type="text" id="aNom" autocomplete="family-name"></div>
+    </div>
+  </div>
+  <button class="btn pri" id="acSave" type="button">Enregistrer</button>
+  <button class="btn" id="acShared" type="button">Utiliser en appareil partagé (sans compte)</button>
+  <button class="btn" id="acClose" type="button">Fermer</button>
+</div></div>
+<div class="welcome" id="welcome"><div class="w">
+  <img class="brandBig" id="wLogo" alt="MAPE">
+  <h1>Bienvenue dans Mape Calculs</h1>
+  <p>Crée ton compte technicien : ton nom sera rempli automatiquement sur chaque contrôle et chaque PDF.</p>
+  <div class="grid">
+    <div><label for="wPre">Prénom</label><input type="text" id="wPre" autocomplete="given-name"></div>
+    <div><label for="wNom">Nom</label><input type="text" id="wNom" autocomplete="family-name"></div>
+  </div>
+  <button class="btn pri" id="wGo" type="button">Créer mon compte</button>
+  <button class="link" id="wShared" type="button">Appareil partagé : continuer sans compte</button>
+  <p style="font-size:13px">Le compte est enregistré uniquement sur ce téléphone.</p>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -256,7 +292,43 @@ $('#btnClear').addEventListener('click', () => {
 /* ---------- Contrôle (salle, date, technicien) ---------- */
 let ctl = store.get('ctl', {});
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-if (!ctl.date) ctl.date = today();
+// La date repart sur aujourd'hui à chaque nouvelle journée
+if (!ctl.date || store.get('day', '') !== today()) { ctl.date = today(); store.set('day', today()); store.set('ctl', ctl); }
+/* ---------- Compte technicien (stocké sur l'appareil) ---------- */
+let profil = store.get('profil', null);          // {pre, nom} ou null
+let mode = store.get('mode', profil ? 'compte' : ''); // 'compte' | 'partage' | ''
+const fullName = p => p ? [p.pre, p.nom].filter(Boolean).join(' ') : '';
+const initials = p => p ? ((p.pre || '')[0] || '') + ((p.nom || '')[0] || '') : '';
+function applyProfil() {
+  const b = $('#meBtn');
+  if (mode === 'compte' && profil) { ctl.tech = fullName(profil); store.set('ctl', ctl); b.textContent = initials(profil).toUpperCase() || '?'; b.classList.remove('shared'); }
+  else { b.textContent = '👥'; b.classList.add('shared'); }
+  const t = $('#fTech'); t.readOnly = mode === 'compte' && !!profil;
+  renderCtl();
+}
+function saveProfil(pre, nom) {
+  pre = pre.trim(); nom = nom.trim();
+  if (!pre && !nom) { toast('Indique au moins ton nom'); return false; }
+  profil = { pre, nom }; mode = 'compte'; store.set('profil', profil); store.set('mode', mode); applyProfil(); return true;
+}
+function setShared() { mode = 'partage'; store.set('mode', mode); if (profil) { ctl.tech = ''; store.set('ctl', ctl); } applyProfil(); }
+$('#wGo').addEventListener('click', () => { if (saveProfil($('#wPre').value, $('#wNom').value)) { $('#welcome').classList.remove('show'); toast('Compte créé : ' + fullName(profil)); } });
+$('#wShared').addEventListener('click', () => { setShared(); $('#welcome').classList.remove('show'); });
+function openAcct() {
+  const has = mode === 'compte' && profil;
+  $('#acTitle').textContent = has ? 'Mon compte' : 'Créer mon compte technicien';
+  $('#acSub').textContent = has ? 'Connecté : ' + fullName(profil) : 'Appareil partagé : le technicien est saisi à chaque contrôle.';
+  $('#aPre').value = profil ? profil.pre : ''; $('#aNom').value = profil ? profil.nom : '';
+  $('#acSave').textContent = has ? 'Enregistrer' : 'Créer mon compte';
+  $('#acShared').style.display = has ? '' : 'none';
+  $('#acct').classList.add('show');
+}
+$('#meBtn').addEventListener('click', openAcct);
+$('#acSave').addEventListener('click', () => { if (saveProfil($('#aPre').value, $('#aNom').value)) { $('#acct').classList.remove('show'); toast('Compte enregistré'); } });
+$('#acShared').addEventListener('click', () => { setShared(); $('#acct').classList.remove('show'); toast('Mode appareil partagé'); });
+$('#acClose').addEventListener('click', () => $('#acct').classList.remove('show'));
+$('#acct').addEventListener('click', e => { if (e.target.id === 'acct') $('#acct').classList.remove('show'); });
+$('#fTech').addEventListener('click', () => { if ($('#fTech').readOnly) toast('Nom du compte : modifiable via le rond en haut à droite'); });
 const frDate = s => s ? s.split('-').reverse().join('/') : '';
 function renderCtl() {
   $('#fLieu').value = ctl.lieu || ''; $('#fDate').value = ctl.date || ''; $('#fTech').value = ctl.tech || '';
@@ -352,7 +424,9 @@ function net() { const on = navigator.onLine; $('#net').classList.toggle('off', 
 addEventListener('online', net); addEventListener('offline', net); net();
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
-renderCtl(); renderForm();
+applyProfil(); renderForm();
+{ const c = document.querySelector('header .brand').cloneNode(true); c.setAttribute('class', 'brandBig'); $('#wLogo').replaceWith(c); }
+if (!mode) $('#welcome').classList.add('show');
 </script>
 </body>
 </html>
