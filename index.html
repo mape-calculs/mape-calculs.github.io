@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Mape Calculs</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --red:#C8204A;--blue:#203F7A;--green:#86D1B0;--yellow:#F9B91F;
+  --grey:#8E8E92;--ink:#1d2433;--muted:#6b7280;--line:#e5e7eb;--bg:#f4f5f7;--card:#fff;
+  --ok:#15803d;--okbg:#e8f6ee;--ko:#b91c1c;--kobg:#fdecec;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header .brand{height:34px;width:auto}
+header .app{font-weight:600;color:var(--grey);font-size:19px;letter-spacing:.3px;border-left:2px solid var(--line);padding-left:12px}
+header .net{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+header .net i{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block}
+header .net.off i{background:var(--yellow)}
+main{max-width:640px;margin:0 auto;padding:12px 12px calc(110px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+/* Contrôle */
+.ctl-sum{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.ctl-sum .t{flex:1;min-width:0}
+.ctl-sum .l1{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctl-sum .l2{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctl-sum .edit{color:var(--blue);font-weight:600;font-size:14px}
+.ctl-form{display:none;margin-top:12px;gap:10px}
+.ctl.open .ctl-form{display:grid}
+.ctl.open .edit{display:none}
+/* Onglets */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tab{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;font:inherit;text-align:left;color:var(--ink);cursor:pointer}
+.tab small{display:block;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.5px}
+.tab b{font-size:15px}
+.tab.on{border-color:var(--blue);background:#eef2fa}
+.tab[data-m^="trh"] small{color:var(--red)}
+.tab[data-m^="psm"] small{color:var(--blue)}
+/* Champs */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid.g4{grid-template-columns:repeat(4,1fr)}
+label{display:block;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:4px}
+input[type=text],input[type=date]{width:100%;font:inherit;font-size:17px;padding:10px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);min-height:46px}
+input:focus{outline:none;border-color:var(--blue)}
+input.bad{border-color:var(--ko);background:var(--kobg)}
+input.out{border-color:var(--ko);background:var(--kobg);color:var(--ko);font-weight:600}
+h2{font-size:15px;margin:0 0 10px;color:var(--ink)}
+h2 span{color:var(--muted);font-weight:500}
+.sec{margin-top:14px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;font:inherit;font-weight:600;padding:9px 0;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.seg button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+/* Résultat */
+.res{border-left:6px solid var(--line)}
+.res.ok{border-left-color:var(--ok)}
+.res.ko{border-left-color:var(--ko)}
+.res.info{border-left-color:var(--blue)}
+.big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.big .v{font-size:40px;font-weight:700;line-height:1.1}
+.big .u{color:var(--muted);font-weight:600}
+.badge{display:inline-block;padding:6px 12px;border-radius:999px;font-weight:700;font-size:16px;margin-top:6px}
+.badge.ok{background:var(--okbg);color:var(--ok)}
+.badge.ko{background:var(--kobg);color:var(--ko)}
+.rows{margin-top:10px;border-top:1px solid var(--line)}
+.rows div{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+.rows div span:first-child{color:var(--muted)}
+.rows div span:last-child{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.hint{color:var(--muted);font-size:14px}
+/* Barre d'actions */
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;z-index:5}
+.bar .in{display:flex;gap:8px;width:100%;max-width:640px}
+.btn{font:inherit;font-weight:700;border-radius:12px;padding:13px 14px;border:1.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.btn.pri{flex:1;background:var(--blue);border-color:var(--blue);color:#fff}
+.btn:disabled{opacity:.45}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.show{display:flex}
+.sheet .p{background:#fff;width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.sheet .p h3{margin:0 0 4px}
+.sheet .p .btn{width:100%;margin-top:10px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <svg class="brand" role="img" aria-label="MAPE" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 302 97"><g fill="none" stroke="#8E8E92" stroke-width="11" stroke-linejoin="miter"><path d="M13.5 84.5 V19 L46 66 L78.5 19 V84.5"/><path d="M193 84.5 V19 H216 A18 18 0 0 1 216 55 H193"/><path d="M293 19 H257.5 V84.5 H293 M257.5 51 H289"/></g><svg x="88" y="13" width="80" height="72" viewBox="-2 -2 102 92"><defs><mask id="mapeA"><path d="M9 78 L49 10 L89 78" fill="none" stroke="#fff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/><polygon points="49,29 27.6,66 70.4,66" fill="#fff" stroke="#fff" stroke-width="1"/></mask></defs><g mask="url(#mapeA)"><polygon points="0,4.6 49,46.5 49,200 -10,200 -10,-10" fill="#203F7A"/><polygon points="100,0.2 49,46.5 49,200 110,200 110,-10" fill="#86D1B0"/><polygon points="49,46.5 0,4.6 0,-10 100,-10 100,0.2" fill="#C8204A"/><polygon points="49,46.5 30,67.5 68,67.5" fill="#F9B91F"/></g></svg></svg>
+
+  <div class="app">Calculs</div>
+  <div class="net" id="net"><i></i><span>En ligne</span></div>
+</header>
+
+<main>
+  <section class="card ctl" id="ctl">
+    <div class="ctl-sum" id="ctlSum">
+      <div class="t">
+        <div class="l1" id="sumLieu">Salle / PSM non renseigné</div>
+        <div class="l2" id="sumMeta">—</div>
+      </div>
+      <div class="edit">Modifier</div>
+    </div>
+    <div class="ctl-form">
+      <div><label for="fLieu">Salle ou PSM</label><input type="text" id="fLieu" autocomplete="off" placeholder="ex. Salle B204 / PSM n°3"></div>
+      <div class="grid">
+        <div><label for="fDate">Date</label><input type="date" id="fDate"></div>
+        <div><label for="fTech">Technicien</label><input type="text" id="fTech" autocomplete="off" placeholder="Nom"></div>
+      </div>
+      <button class="btn" id="ctlOk" type="button">Valider</button>
+    </div>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab" data-m="trhF" type="button"><small>TRH</small><b>Filtre</b></button>
+    <button class="tab" data-m="trhG" type="button"><small>TRH</small><b>Gaine</b></button>
+    <button class="tab" data-m="psmS" type="button"><small>PSM</small><b>Soufflage</b></button>
+    <button class="tab" data-m="psmF" type="button"><small>PSM</small><b>Flux entrant</b></button>
+  </nav>
+
+  <section class="card" id="form"></section>
+  <section class="card res" id="res"></section>
+  <footer>Mape Calculs · fonctionne hors ligne</footer>
+</main>
+
+<div class="bar"><div class="in">
+  <button class="btn" id="btnClear" type="button">Effacer</button>
+  <button class="btn pri" id="btnPdf" type="button">Exporter en PDF</button>
+</div></div>
+
+<div class="sheet" id="sheet"><div class="p">
+  <h3>PDF prêt</h3>
+  <div class="hint" id="sheetName"></div>
+  <button class="btn pri" id="shShare" type="button">Partager (mail, Teams…)</button>
+  <button class="btn" id="shDl" type="button">Télécharger</button>
+  <button class="btn" id="shClose" type="button">Fermer</button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="calc.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('mc_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('mc_' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const fmt = (x, d) => Number(x).toFixed(d).replace('.', ',');
+const fmtIn = s => (s || '').replace('.', ',');
+const parseNum = s => { s = (s || '').trim().replace(',', '.'); return /^\d+(\.\d+)?$|^\.\d+$/.test(s) ? parseFloat(s) : NaN; };
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400); }
+
+/* ---------- Modules ---------- */
+const MODULES = {
+  trhF: { group: 'TRH', name: 'Filtre', title: 'TRH – Filtre', nbFixed: 4,
+    fields: [['vol', 'Volume salle', 'm³'], ['surf', 'Surface filtre', 'm²']] },
+  trhG: { group: 'TRH', name: 'Gaine', title: 'TRH – Gaine', nbMax: 4,
+    fields: [['vol', 'Volume salle', 'm³'], ['surf', 'Surface gaine', 'm²']] },
+  psmS: { group: 'PSM', name: 'Soufflage', title: 'PSM – Soufflage', nbFixed: 8, fields: [] },
+  psmF: { group: 'PSM', name: 'Flux entrant', title: 'PSM – Flux entrant', nbMax: 5,
+    fieldsAfter: [['ss', 'Ss', 'm²'], ['se', 'Se', 'm²']] },
+};
+let cur = store.get('mod', 'trhF'); if (!MODULES[cur]) cur = 'trhF';
+let data = store.get('data', {});
+const D = () => (data[cur] = data[cur] || { nb: MODULES[cur].nbMax || MODULES[cur].nbFixed, v: [] });
+const nbOf = m => MODULES[m].nbFixed || D().nb;
+
+function fieldHtml(key, lab, unit, val) {
+  return `<div><label for="i_${key}">${lab} <span style="font-weight:500">(${unit})</span></label>
+  <input type="text" inputmode="decimal" autocomplete="off" id="i_${key}" data-k="${key}" value="${fmtIn(val)}"></div>`;
+}
+function renderForm() {
+  const M = MODULES[cur], d = D(), n = nbOf(cur);
+  let h = '';
+  if (M.fields && M.fields.length) h += `<h2>Dimensions</h2><div class="grid">${M.fields.map(f => fieldHtml(f[0], f[1], f[2], d[f[0]])).join('')}</div>`;
+  h += `<div class="${M.fields && M.fields.length ? 'sec' : ''}">`;
+  if (M.nbMax) {
+    h += `<h2>Nombre de vitesses</h2><div class="seg" id="seg">${Array.from({ length: M.nbMax }, (_, i) =>
+      `<button type="button" data-n="${i + 1}" class="${i + 1 === n ? 'on' : ''}">${i + 1}</button>`).join('')}</div>`;
+  }
+  h += `<h2 class="${M.nbMax ? 'sec' : ''}">Vitesses mesurées <span>(m/s)</span></h2><div class="grid g4">`;
+  for (let i = 0; i < n; i++) h += `<div><label for="i_v${i}">v${i + 1}</label><input type="text" inputmode="decimal" autocomplete="off" id="i_v${i}" data-v="${i}" value="${fmtIn(d.v[i])}"></div>`;
+  h += `</div></div>`;
+  if (M.fieldsAfter) h += `<h2 class="sec">Surfaces</h2><div class="grid">${M.fieldsAfter.map(f => fieldHtml(f[0], f[1], f[2], d[f[0]])).join('')}</div>`;
+  $('#form').innerHTML = h;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.m === cur));
+  compute();
+}
+
+$('#form').addEventListener('input', e => {
+  const el = e.target, d = D();
+  if (el.dataset.k) d[el.dataset.k] = el.value;
+  if (el.dataset.v != null) d.v[+el.dataset.v] = el.value;
+  store.set('data', data); compute();
+});
+$('#form').addEventListener('click', e => {
+  const b = e.target.closest('#seg button'); if (!b) return;
+  D().nb = +b.dataset.n; store.set('data', data); renderForm();
+});
+$('#tabs').addEventListener('click', e => {
+  const t = e.target.closest('.tab'); if (!t) return;
+  cur = t.dataset.m; store.set('mod', cur); renderForm();
+});
+
+/* ---------- Calcul ---------- */
+let last = null;
+function readVals() {
+  const M = MODULES[cur], d = D(), n = nbOf(cur), out = { v: [] }; let ok = true;
+  const chk = (key, raw) => { const el = $('#i_' + key), x = parseNum(raw); const filled = (raw || '').trim() !== '';
+    if (el) el.classList.toggle('bad', filled && (isNaN(x) || x <= 0) ); if (isNaN(x) || x <= 0) ok = false; return x; };
+  [...(M.fields || []), ...(M.fieldsAfter || [])].forEach(f => out[f[0]] = chk(f[0], d[f[0]]));
+  for (let i = 0; i < n; i++) { const el = $('#i_v' + i), raw = d.v[i], x = parseNum(raw); const filled = (raw || '').trim() !== '';
+    if (el) { el.classList.toggle('bad', filled && isNaN(x)); el.classList.remove('out'); }
+    if (isNaN(x)) ok = false; out.v.push(x); }
+  return ok ? out : null;
+}
+function rows(list) { return `<div class="rows">${list.map(r => `<div><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>`; }
+function compute() {
+  const M = MODULES[cur], x = readVals(), el = $('#res');
+  last = null; el.className = 'card res';
+  if (!x) { el.innerHTML = `<h2>Résultat</h2><div class="hint">Renseigne toutes les valeurs pour obtenir le résultat.</div>`; $('#btnPdf').disabled = true; return; }
+  let h = '', det = [];
+  if (cur === 'trhF' || cur === 'trhG') {
+    const r = Calc.trh(x.vol, x.surf, x.v);
+    det = [['Vitesse moyenne', fmt(r.vm, 4) + ' m/s'], ['Débit', fmt(r.debit, 1) + ' m³/h'], ['Volume salle', fmt(x.vol, 2).replace(/,?0+$/, '') + ' m³']];
+    h = `<h2>Taux de renouvellement horaire</h2><div class="big"><span class="v">${r.trh}</span><span class="u">vol/h</span></div>${rows(det)}`;
+    el.classList.add('info');
+    last = { r, x, main: [['TRH', r.trh + ' vol/h']], det };
+  } else if (cur === 'psmS') {
+    const r = Calc.soufflage(x.v);
+    x.v.forEach((v, i) => { if (v < r.lo || v > r.hi) $('#i_v' + i).classList.add('out'); });
+    det = [['Vitesse moyenne (VM)', fmt(r.vm, 2) + ' m/s'], ['Plage admise (VM ±20 %)', fmt(r.lo, 2) + ' à ' + fmt(r.hi, 2) + ' m/s'], ['Vmin mesurée', fmt(r.vmin, 2) + ' m/s'], ['Vmax mesurée', fmt(r.vmax, 2) + ' m/s']];
+    h = `<h2>Soufflage</h2><div class="big"><span class="v">${fmt(r.vm, 2)}</span><span class="u">m/s (VM)</span></div>
+      <span class="badge ${r.conforme ? 'ok' : 'ko'}">${r.conforme ? 'Conforme' : 'Non conforme'}</span>${rows(det)}
+      ${r.conforme ? '' : '<div class="hint" style="margin-top:8px">Les vitesses hors plage sont en rouge.</div>'}`;
+    el.classList.add(r.conforme ? 'ok' : 'ko');
+    last = { r, x, main: [['VM', fmt(r.vm, 2) + ' m/s'], ['Conformité', r.conforme ? 'Conforme' : 'Non conforme']], det, conf: r.conforme };
+  } else {
+    const r = Calc.flux(x.v, x.ss, x.se);
+    det = [['Vitesse moyenne mesurée', fmt(r.vmes, 2) + ' m/s'], ['Débit Q', fmt(r.q, 3) + ' m³/s'], ['Critère', 'Vm ≥ 0,40 m/s']];
+    h = `<h2>Flux entrant</h2><div class="big"><span class="v">${fmt(r.vm, 2)}</span><span class="u">m/s (Vm)</span></div>
+      <span class="badge ${r.conforme ? 'ok' : 'ko'}">${r.conforme ? 'Conforme' : 'Non conforme'}</span>${rows(det)}`;
+    el.classList.add(r.conforme ? 'ok' : 'ko');
+    last = { r, x, main: [['Vm', fmt(r.vm, 2) + ' m/s'], ['Conformité', r.conforme ? 'Conforme' : 'Non conforme']], det, conf: r.conforme };
+  }
+  el.innerHTML = h; $('#btnPdf').disabled = false;
+}
+
+$('#btnClear').addEventListener('click', () => {
+  const M = MODULES[cur]; data[cur] = { nb: M.nbMax ? D().nb : M.nbFixed, v: [] };
+  store.set('data', data); renderForm(); toast('Valeurs effacées');
+});
+
+/* ---------- Contrôle (salle, date, technicien) ---------- */
+let ctl = store.get('ctl', {});
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+if (!ctl.date) ctl.date = today();
+const frDate = s => s ? s.split('-').reverse().join('/') : '';
+function renderCtl() {
+  $('#fLieu').value = ctl.lieu || ''; $('#fDate').value = ctl.date || ''; $('#fTech').value = ctl.tech || '';
+  $('#sumLieu').textContent = ctl.lieu || 'Salle / PSM non renseigné';
+  $('#sumLieu').style.color = ctl.lieu ? '' : 'var(--muted)';
+  $('#sumMeta').textContent = [frDate(ctl.date), ctl.tech || 'Technicien non renseigné'].filter(Boolean).join(' · ');
+}
+['fLieu', 'fDate', 'fTech'].forEach(id => $('#' + id).addEventListener('input', () => {
+  ctl = { lieu: $('#fLieu').value.trim(), date: $('#fDate').value, tech: $('#fTech').value.trim() }; store.set('ctl', ctl); renderCtl();
+}));
+$('#ctlSum').addEventListener('click', () => { $('#ctl').classList.toggle('open'); if ($('#ctl').classList.contains('open')) $('#fLieu').focus(); });
+$('#ctlOk').addEventListener('click', () => $('#ctl').classList.remove('open'));
+
+/* ---------- PDF ---------- */
+let pdfBlob = null, pdfName = '', headerImg = null;
+function loadScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+async function getHeader() {
+  if (headerImg) return headerImg;
+  const b = await (await fetch('header-pdf.jpg')).blob();
+  headerImg = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
+  return headerImg;
+}
+async function makePdf() {
+  if (!last) return;
+  if (!window.jspdf) await loadScript('jspdf.min.js');
+  const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'mm', format: 'a4' }), M = MODULES[cur];
+  const W = 210, L = 18, R = W - 18; let y = 16;
+  try { doc.addImage(await getHeader(), 'JPEG', L, y, 42, 13.5); } catch (e) {}
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(142, 142, 146); doc.text('Calculs', L + 46, y + 10.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.text('Édité le ' + new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }), R, y + 10.5, { align: 'right' });
+  y += 22; doc.setDrawColor(229, 231, 235); doc.setLineWidth(0.4); doc.line(L, y, R, y); y += 10;
+  doc.setTextColor(29, 36, 51); doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.text(M.title, L, y); y += 9;
+
+  const pt = t => String(t).replace(/²/g, '2').replace(/³/g, '3').replace(/≥/g, '>=');
+  const box = (title, list) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(32, 63, 122); doc.text(title.toUpperCase(), L, y); y += 3;
+    list.forEach(([k, v], i) => {
+      if (i % 2 === 0) { doc.setFillColor(246, 247, 249); doc.rect(L, y, R - L, 7.5, 'F'); }
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(107, 114, 128); doc.text(pt(k), L + 3, y + 5.2);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(29, 36, 51); doc.text(pt(v), R - 3, y + 5.2, { align: 'right' });
+      y += 7.5;
+    }); y += 8;
+  };
+  box('Contrôle', [['Salle / PSM', ctl.lieu || '—'], ['Date', frDate(ctl.date) || '—'], ['Technicien', ctl.tech || '—']]);
+  const x = last.x, ins = [];
+  [...(M.fields || []), ...(M.fieldsAfter || [])].forEach(f => ins.push([f[1] + ' (' + f[2] + ')', fmtIn(String(x[f[0]]))]));
+  if (M.nbMax) ins.push(['Nombre de vitesses', String(x.v.length)]);
+  x.v.forEach((v, i) => ins.push(['v' + (i + 1) + ' (m/s)', fmtIn(String(v))]));
+  box('Valeurs saisies', ins);
+  box('Calculs', last.det);
+
+  // Résultat
+  const conf = last.conf, hasConf = conf !== undefined;
+  const col = !hasConf ? [32, 63, 122] : conf ? [21, 128, 61] : [185, 28, 28];
+  const bg = !hasConf ? [238, 242, 250] : conf ? [232, 246, 238] : [253, 236, 236];
+  doc.setFillColor(...bg); doc.roundedRect(L, y, R - L, 24, 3, 3, 'F');
+  doc.setFillColor(...col); doc.rect(L, y, 2.5, 24, 'F');
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(107, 114, 128); doc.text('RÉSULTAT', L + 8, y + 7);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(...col);
+  doc.text(pt(last.main.map(m => m[0] + ' = ' + m[1]).filter(s => !s.startsWith('Conformité')).join('   ')), L + 8, y + 17);
+  if (hasConf) { doc.setFontSize(16); doc.text(conf ? 'CONFORME' : 'NON CONFORME', R - 6, y + 15.5, { align: 'right' }); }
+  y += 38;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(107, 114, 128);
+  doc.text('Visa technicien :', L, y); doc.setDrawColor(200, 200, 200); doc.line(L + 30, y + 1, L + 90, y + 1);
+  doc.setFontSize(8); doc.text('Document généré par Mape Calculs', W / 2, 287, { align: 'center' });
+
+  const safe = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '');
+  pdfName = ['MapeCalculs', safe(M.title.replace('–', '')), safe(ctl.lieu), (ctl.date || today())].filter(Boolean).join('_').replace(/_+/g, '_') + '.pdf';
+  pdfBlob = doc.output('blob');
+}
+function download() {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(pdfBlob); a.download = pdfName;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+$('#btnPdf').addEventListener('click', async () => {
+  if (!ctl.lieu || !ctl.tech) { $('#ctl').classList.add('open'); toast('Pense à renseigner la salle / PSM et le technicien'); if (!ctl.lieu) return $('#fLieu').focus(); return $('#fTech').focus(); }
+  try { await makePdf(); } catch (e) { toast('Erreur lors de la création du PDF'); return; }
+  const file = new File([pdfBlob], pdfName, { type: 'application/pdf' });
+  const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+  if (!canShare) { download(); toast('PDF téléchargé'); return; }
+  $('#sheetName').textContent = pdfName; $('#sheet').classList.add('show');
+});
+$('#shShare').addEventListener('click', async () => {
+  try { await navigator.share({ files: [new File([pdfBlob], pdfName, { type: 'application/pdf' })], title: pdfName }); $('#sheet').classList.remove('show'); }
+  catch (e) { if (e.name !== 'AbortError') toast('Partage impossible, utilise Télécharger'); }
+});
+$('#shDl').addEventListener('click', () => { download(); $('#sheet').classList.remove('show'); toast('PDF téléchargé'); });
+$('#shClose').addEventListener('click', () => $('#sheet').classList.remove('show'));
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').classList.remove('show'); });
+
+/* ---------- En ligne / hors ligne ---------- */
+function net() { const on = navigator.onLine; $('#net').classList.toggle('off', !on); $('#net span').textContent = on ? 'En ligne' : 'Hors ligne'; }
+addEventListener('online', net); addEventListener('offline', net); net();
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+
+renderCtl(); renderForm();
+</script>
+</body>
+</html>
